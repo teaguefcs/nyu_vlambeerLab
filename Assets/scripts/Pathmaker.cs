@@ -2,80 +2,91 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// MAZE PROC GEN LAB
-// all students: complete steps 1-6, as listed in this file
-// optional: if you have extra time, complete the "extra tasks" to do at the very bottom
+public class Pathmaker : MonoBehaviour
+{
+   
+    private int lifeSpan, counter;
+    private float leftProb, rightProb, spawnProb;
 
-// STEP 1: ======================================================================================
-// put this script on a Sphere... it will move around, and drop a path of floor tiles behind it
+    public static int tileCount = 0;
 
-public class Pathmaker : MonoBehaviour {
+    public Transform floorPrefab;
+    public Transform[] types;
+    public Transform pathmakerSpherePrefab;
+    public CameraManager main;
 
-// STEP 2: ============================================================================================
-// translate the pseudocode below
+    void Start()
+    {
+        main = Camera.main.GetComponent<CameraManager>();
+        counter = 0;
+        lifeSpan = Random.Range(25, 50);
+        leftProb = Random.Range(.2f, .3f);
+        rightProb = leftProb + Random.Range(.2f, .3f);
+        spawnProb = Random.Range(.9f, .95f);
+    }
 
-//	DECLARE CLASS MEMBER VARIABLES:
-//	Declare a private integer called counter that starts at 0; 		// counter var will track how many floor tiles I've instantiated
-//	Declare a public Transform called floorPrefab, assign the prefab in inspector;
-//	Declare a public Transform called pathmakerSpherePrefab, assign the prefab in inspector; 		// you'll have to make a "pathmakerSphere" prefab later
+    void Update()
+    {
+        if (transform.position.z > main.furthestNorth)
+        {
+            main.furthestNorth = transform.position.z;
+        }
+        if (transform.position.x > main.furthestEast)
+        {
+            main.furthestEast = transform.position.x;
+        }
+        if (transform.position.x < main.furthestWest)
+        {
+            main.furthestWest = transform.position.x;
+        }
+        if (transform.position.z < main.furthestSouth)
+        {
+            main.furthestSouth = transform.position.z;
+        }
 
+        if (counter < lifeSpan && tileCount < 500)
+        {
+            float randNum = Random.value;
+            if (randNum < leftProb)
+            {
+                transform.Rotate(new Vector3(0, 90, 0));
+            }
+            else if (randNum < rightProb)
+            {
+                transform.Rotate(new Vector3(0, -90, 0));
+            }
+            else if (randNum >= spawnProb)
+            {
+                Instantiate(pathmakerSpherePrefab, transform.position, transform.rotation);
+            }
 
-	void Update () {
-//		If counter is less than 50, then:
-//			Generate a random number from 0.0f to 1.0f;
-//			If random number is less than 0.25f, then rotate myself 90 degrees;
-//				... Else if number is 0.25f-0.5f, then rotate myself -90 degrees;
-//				... Else if number is 0.99f-1.0f, then instantiate a pathmakerSpherePrefab clone at my current position;
-//			// end elseIf
+            Ray checker = new Ray(transform.position, Vector3.down);
 
-//			Instantiate a floorPrefab clone at current position;
-//			Move forward ("forward", as in, the direction I'm currently facing) by 5 units;
-//			Increment counter;
-//		Else:
-//			Destroy my game object; 		// self destruct if I've made enough tiles already
-	}
+            if (!Physics.Raycast(checker, 1.5f))
+            {
+                Vector3 dest = new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y), Mathf.RoundToInt(transform.position.z));
+                main.floors.Add(Instantiate(types[Random.Range(0,2)], dest + Vector3.down, Quaternion.Euler(Vector3.zero)));
+                tileCount++;
+            }
 
-} // end of class scope
+            transform.position = Vector3.MoveTowards(transform.position, transform.position + (transform.forward.normalized * 5f), 5f);
 
-// MORE STEPS BELOW!!!........
-
-
-
-
-// STEP 3: =====================================================================================
-// implement, test, and stabilize the system
-
-//	IMPLEMENT AND TEST:
-//	- save your scene!!! the code could potentially be infinite / exponential, and crash Unity
-//	- put Pathmaker.cs on a sphere, configure all the prefabs in the Inspector, and test it to make sure it works
-//	STABILIZE: 
-//	- code it so that all the Pathmakers can only spawn a grand total of 500 tiles in the entire world; how would you do that?
-//	- (hint: declare a "public static int" and have each Pathmaker check this "globalTileCount", somewhere in your code? if there are already enough tiles, then maybe the Pathmaker could Destroy my game object
-
-
-
-// STEP 4: ======================================================================================
-// tune your values...
-
-// a. how long should a pathmaker live? etc.
-// b. how would you tune the probabilities to generate lots of long hallways? does it work?
-// c. tweak all the probabilities that you want... what % chance is there for a pathmaker to make a pathmaker? is that too high or too low?
-
-
-
-// STEP 5: ===================================================================================
-// maybe randomize it even more?
-
-// - randomize 2 more variables in Pathmaker.cs for each different Pathmaker... you would do this in Start()
-// - maybe randomize each pathmaker's lifetime? maybe randomize the probability it will turn right? etc. if there's any number in your code, you can randomize it if you move it into a variable
-
-
+            counter++;
+        }
+        else
+        {
+            if (GameObject.FindGameObjectsWithTag("Pathmaker").Length <= 1)
+            {
+                main.finished = true;
+            }
+            Destroy(gameObject);
+        }
+    }
+}
 
 // STEP 6:  =====================================================================================
 // art pass, usability pass
 
-// - move the game camera to a position high in the world, and then point it down, so we can see your world get generated
-// - CHANGE THE DEFAULT UNITY COLORS, PLEASE, I'M BEGGING YOU
 // - add more detail to your original floorTile placeholder -- and let it randomly pick one of 3 different floorTile models, etc. so for example, it could randomly pick a "normal" floor tile, or a cactus, or a rock, or a skull
 //		- MODEL 3 DIFFERENT TILES IN MAYA! DON'T STOP USING MAYA OR YOU'LL FORGET IT ALL
 //		- add a simple in-game restart button; let us press [R] to reload the scene and see a new level generation
